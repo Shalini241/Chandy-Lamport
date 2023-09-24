@@ -2,11 +2,14 @@ import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.*;
+import java.util.logging.FileHandler;
 import java.util.logging.Logger;
+import java.util.logging.SimpleFormatter;
 
 public class Node implements Serializable {
 
-    private static final Logger logger = LoggerConfig.configureLogger();
+    private static final Logger logger = Logger.getLogger(Node.class.getName());
+
     private final String hostName;
 
     private final int port;
@@ -61,6 +64,11 @@ public class Node implements Serializable {
         this.nodeId = id;
         this.active = true;
         server = new Server();
+        FileHandler fh = new FileHandler("myapp.log");
+        logger.addHandler(fh);
+
+        SimpleFormatter formatter = new SimpleFormatter();
+        fh.setFormatter(formatter);
     }
 
     public void initializeNode() {
@@ -121,9 +129,9 @@ public class Node implements Serializable {
             while (true) {
                 try {
                     Message incomingMessage = (Message) inputStream.readObject();
-                    logger.info("Receiving message "+ incomingMessage.getMessage()+" from "+ incomingMessage.getSourceNode().getNodeId() +" to "+ nodeId);
                     synchronized (Node.this.active) {
                         Node.this.active = (Node.this.messagesSent < NodeWrapper.getMaxNumber());
+                        logger.info("Receiving message "+ incomingMessage.getMessage()+" from "+ incomingMessage.getSourceNode().getNodeId() +" to "+ nodeId);
                         if (Node.this.active)
                             sendApplicationMessages();
                     }

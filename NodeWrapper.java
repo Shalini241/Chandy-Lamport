@@ -75,7 +75,7 @@ public class NodeWrapper {
 
     public static void main(String[] args) {
         int id = Integer.parseInt(args[0]);
-        List<List<Integer>> neighborList = parseConfigFile("configuration.text");
+        List<List<Integer>> neighborList = parseConfigFile("conf.text");
 
         int currentNodeId = Integer.parseInt(args[0]);
         Node currentNode = nodeMap.get(currentNodeId);
