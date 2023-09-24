@@ -22,9 +22,9 @@ public class Node implements Serializable {
 
     private final int nodeId;
     private List<Node> neighbors;
-    private Boolean active;
+    private transient Boolean active;
 
-    private int messagesSent;
+    private transient int messagesSent;
 
     public List<Node> getNeighbors() {
         return neighbors;
@@ -75,9 +75,13 @@ public class Node implements Serializable {
         // Start Listening thread
         new Thread(new ListenerThread()).start();
         // Put the main thread in sleep for few seconds
-        server.initializeNeighbors(neighbors);
-        sendApplicationMessages();
-
+        try {
+            Thread.sleep(20000);
+            server.initializeNeighbors(neighbors);
+            sendApplicationMessages();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     class ListenerThread implements Runnable {
