@@ -5,7 +5,7 @@ import java.util.logging.SimpleFormatter;
 
 public class LoggerConfig {
     public static Logger configureLogger() {
-        Logger logger = Logger.getLogger("Application");
+        Logger logger = Logger.getLogger("NodeWrapper");
 
         try {
             FileHandler fh = new FileHandler("myapp.log");

@@ -6,7 +6,7 @@ import java.util.logging.Logger;
 
 public class Node implements Serializable {
 
-    private transient final Logger logger = LoggerConfig.configureLogger();
+    private static final Logger logger = LoggerConfig.configureLogger();
     private final String hostName;
 
     private final int port;
