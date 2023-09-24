@@ -55,14 +55,14 @@ public class NodeWrapper {
             }
             for(int node = 0; node < num_of_nodes; node++){
                 line = reader.readLine();
-                String[] nodeDetails = line.split(" ");
+                String[] nodeDetails = line.split("\\s+");
                 int id = Integer.parseInt(nodeDetails[0]);
                 Node newNode = new Node(id,nodeDetails[1],Integer.parseInt(nodeDetails[2]));
                 nodeMap.put(id, newNode);
             }
             for(int node = 0; node < num_of_nodes; node++){
                 line = reader.readLine();
-                List<Integer> neighbors = Arrays.stream(line.split(" "))
+                List<Integer> neighbors = Arrays.stream(line.split("\\s+"))
                         .map(Integer::parseInt)
                         .collect(Collectors.toList());
                 neighboursList.add(neighbors);
