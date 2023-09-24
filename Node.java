@@ -135,7 +135,7 @@ public class Node implements Serializable {
                     Message incomingMessage = (Message) inputStream.readObject();
                     synchronized (Node.this.active) {
                         Node.this.active = (Node.this.messagesSent < NodeWrapper.getMaxNumber());
-                        logger.info("Receiving message "+ incomingMessage.getMessage()+" from "+ incomingMessage.getSourceNode().getNodeId() +" to "+ nodeId);
+                        logger.info("Receiving message "+ incomingMessage.getMessage()+" from "+ incomingMessage.getSourceNode().getNodeId() +" to "+ Node.this.nodeId);
                         if (Node.this.active)
                             sendApplicationMessages();
                     }

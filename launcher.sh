@@ -29,8 +29,8 @@ do
     echo "ssh onto dc$n"
       # execute a remote command on the dc machine. Starts the jar and redirects the output to a log file.
     ssh $netid@$host \
-      "cd ~/OS-project1; \
-      java -cp $BINDIR $PROG $n" &
+      "cd ~/Assignment1/OS-Asg1; \
+      java $PROG $n" &
 
     n=$((n + 1))
 
