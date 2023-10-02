@@ -1,10 +1,8 @@
 import java.io.Serializable;
-import java.util.ArrayList;
 
 public class Message implements Serializable {
     private String message;
     private Node sourceNode;
-
 
     public Message() {
 
@@ -30,5 +28,6 @@ public class Message implements Serializable {
     public void setSourceNode(Node sourceNode) {
         this.sourceNode = sourceNode;
     }
+
 }
 

@@ -1,13 +1,11 @@
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class NodeWrapper {
+    private static int totalNodes;
     private static int minPerActive;
     private static int maxPerActive;
     private static int minSendDelay;
@@ -16,6 +14,19 @@ public class NodeWrapper {
     private static int maxNumber;
 
     private static HashMap<Integer, Node> nodeMap;
+
+    private static ArrayList<GlobalState> globalStates;
+
+    public static ArrayList<GlobalState> getGlobalStates() {
+        if(globalStates==null){
+            globalStates = new ArrayList<>();
+        }
+        return globalStates;
+    }
+
+    public static void setGlobalStates(ArrayList<GlobalState> globalStates) {
+        NodeWrapper.globalStates = globalStates;
+    }
 
     public static int getMinPerActive() {
         return minPerActive;
@@ -29,13 +40,22 @@ public class NodeWrapper {
         return minSendDelay;
     }
 
-    public int getSnapshotDelay() {
+    public static int getSnapshotDelay() {
         return snapshotDelay;
     }
 
     public static int getMaxNumber() {
         return maxNumber;
     }
+
+    public static int getTotalNodes() {
+        return totalNodes;
+    }
+
+    public static void setTotalNodes(int totalNodes) {
+        NodeWrapper.totalNodes = totalNodes;
+    }
+
 
     private static List<List<Integer>> parseConfigFile(String configFilePath) {
 
@@ -44,7 +64,8 @@ public class NodeWrapper {
         try (BufferedReader reader = new BufferedReader(new FileReader(configFilePath))) {
             String line = reader.readLine();
             String[] parameters = line.split(" ");
-            int num_of_nodes = Integer.parseInt(parameters[0]);
+            System.out.println(Arrays.asList(parameters));
+            totalNodes = Integer.parseInt(parameters[0]);
             minPerActive = Integer.parseInt(parameters[1]);
             maxPerActive = Integer.parseInt(parameters[2]);
             minSendDelay = Integer.parseInt(parameters[3]);
@@ -53,14 +74,14 @@ public class NodeWrapper {
             if(nodeMap == null){
                 nodeMap = new HashMap<>();
             }
-            for(int node = 0; node < num_of_nodes; node++){
+            for(int node = 0; node < totalNodes; node++){
                 line = reader.readLine();
                 String[] nodeDetails = line.split("\\s+");
                 int id = Integer.parseInt(nodeDetails[0]);
                 Node newNode = new Node(id,nodeDetails[1],Integer.parseInt(nodeDetails[2]));
                 nodeMap.put(id, newNode);
             }
-            for(int node = 0; node < num_of_nodes; node++){
+            for(int node = 0; node < totalNodes; node++){
                 line = reader.readLine();
                 List<Integer> neighbors = Arrays.stream(line.split("\\s+"))
                         .map(Integer::parseInt)
@@ -73,9 +94,36 @@ public class NodeWrapper {
         return neighboursList;
     }
 
+    private static void buildSpanningTree(List<List<Integer>> neighbourList) {
+        if (nodeMap != null && !nodeMap.isEmpty()) {
+            boolean[] visited = new boolean[nodeMap.size()];
+            Arrays.fill(visited, false);
+            Queue<Integer> queue = new LinkedList<>();
+            queue.add(0);
+            visited[0] = true;
+            while (!queue.isEmpty()) {
+                int nodeId = queue.poll();
+                Node parent = nodeMap.get(nodeId);
+                List<Integer> neighbours = neighbourList.get(nodeId);
+                if (neighbours != null && !neighbours.isEmpty()) {
+                    for (Integer neighbourId : neighbours) {
+                        if (!visited[neighbourId]) {
+                            Node neighbour = nodeMap.get(neighbourId);
+                            neighbour.setParent(parent);
+                            visited[neighbourId] = true;
+                            queue.add(neighbourId);
+                        }
+                    }
+                }
+            }
+
+        }
+    }
+
     public static void main(String[] args) {
         int id = Integer.parseInt(args[0]);
         List<List<Integer>> neighborList = parseConfigFile("configuration.text");
+        buildSpanningTree(neighborList);
 
         int currentNodeId = Integer.parseInt(args[0]);
         Node currentNode = nodeMap.get(currentNodeId);
@@ -89,8 +137,7 @@ public class NodeWrapper {
             neighbourNodes.add(neighbour);
         }
         currentNode.setNeighbors(neighbourNodes);
-
-        // set up current node; close socket is pending
+        currentNode.initializeReceivedMarkerMap();
         currentNode.initializeNode();
     }
 }

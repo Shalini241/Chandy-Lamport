@@ -44,5 +44,18 @@ public class Server{
             ex.printStackTrace();
         }
     }
+
+    public void haltAllNodes() {
+        try {
+            for (Integer nodeId : outputMap.keySet()) {
+                outputMap.get(nodeId).close();
+            }
+            for (Integer nodeId : socketMap.keySet()) {
+                socketMap.get(nodeId).close();
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+    }
     
 }
