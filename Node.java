@@ -208,7 +208,7 @@ public class Node implements Serializable {
 
         public MessageProcessingThread(Socket socket) {
             this.socket = socket;
-//            System.out.println(socket.toString());
+//            logger.info(socket.toString());
             try {
                 inputStream = new ObjectInputStream(socket.getInputStream());
             } catch (Exception ex) {
@@ -226,7 +226,7 @@ public class Node implements Serializable {
                         synchronized (Node.this.active) {
                             Node.this.active = (Node.this.messagesSent < NodeWrapper.getMaxNumber());
                         }
-                        System.out.println("Received Application message");
+                        logger.info("Received Application message");
                         synchronized (Node.this.vectorClock) {
                             for (int i = 0; i < Node.this.vectorClock.length; i++) {
                                 Node.this.vectorClock[i] = Math.max(Node.this.vectorClock[i],
@@ -249,11 +249,11 @@ public class Node implements Serializable {
                         if (Node.this.active)
                             sendApplicationMessages();
                     } else if(incomingMessage instanceof MarkerMessage){
-                        System.out.println("Received marker message");
+                        logger.info("Received marker message");
                         processChandyLamportProtocol((MarkerMessage) incomingMessage);
                     } else if(incomingMessage instanceof SnapshotMessage){
                         SnapshotMessage snapshotMessage = (SnapshotMessage) incomingMessage;
-                        System.out.println("Received snapshot message");
+                        logger.info("Received snapshot message");
                         if (Node.this.getNodeId() != 0) {
                             send(Node.this.parent, snapshotMessage);
                         } else {
@@ -266,7 +266,7 @@ public class Node implements Serializable {
                             saveSnapshot();
                         }
                     } else if (incomingMessage instanceof TerminateMessage) {
-                        System.out.println("Received termination message");
+                        logger.info("Received termination message");
                         sendTerminateMessage();
                     }
                 } catch (EOFException ex) {
@@ -294,7 +294,7 @@ public class Node implements Serializable {
     }
 
     private void restartChandyLamport() {
-        System.out.println("Restarting Chandy Lamport Protocol");
+        logger.info("Restarting Chandy Lamport Protocol");
         color = NodeColor.BLUE;
         localState = new LocalState();
         channelStates = new ArrayList<>();
@@ -314,7 +314,7 @@ public class Node implements Serializable {
         // if current node is default node then write the snapshot to a file
         if (this.nodeId == 0) {
             if(checkSnapShotConsistency()){
-                System.out.println("Protocol is finished");
+                logger.info("Protocol is finished");
                 writeFinalOutput();
                 server.haltAllNodes();
                 System.exit(0);
@@ -389,8 +389,8 @@ public class Node implements Serializable {
                         int jthVectorValue = globalState.getLocalStates().get(i).getVectorClock()[ithProcess];
                         if (jthVectorValue > ithVectorValue) {
                             isSnapshotConsistent = false;
-                            System.out.println("Global Snapshot number " + (snapshotIndex + 1) + " is not consistent");
-                            System.out.println("Process in Node " + ithProcess + " is invalid");
+                            logger.info("Global Snapshot number " + (snapshotIndex + 1) + " is not consistent");
+                            logger.info("Process in Node " + ithProcess + " is invalid");
                             break;
                         }
                     }
@@ -399,7 +399,7 @@ public class Node implements Serializable {
             }
             if (isSnapshotConsistent) {
                 anyConsistentSnapshotFound = true;
-                System.out.println("Global Snapshot number " + (snapshotIndex + 1) + " is consistent");
+                logger.info("Global Snapshot number " + (snapshotIndex + 1) + " is consistent");
             }
         }
         return anyConsistentSnapshotFound;
@@ -443,7 +443,7 @@ public class Node implements Serializable {
                     break;
                 Thread.sleep(NodeWrapper.getMinSendDelay());
             }
-//            System.out.println(this);
+//            logger.info(this);
             // set node as passive after it sends all messages
             synchronized (this.active) {
                 active = false;
