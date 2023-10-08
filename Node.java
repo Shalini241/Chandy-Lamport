@@ -136,8 +136,8 @@ public class Node implements Serializable {
                     Message incomingMessage = (Message) inputStream.readObject();
                     // Synchronize the block wherever any parameter is getting updates
                     // since the block is being accessed by multiple message processing threads
-                    if(incomingMessage instanceof ApplicationMessage applicationMessage){
-
+                    if(incomingMessage instanceof ApplicationMessage){
+                        ApplicationMessage applicationMessage = (ApplicationMessage) incomingMessage;
                         // set the active status as per the logic
                         synchronized (Node.this.active) {
                             Node.this.active = (Node.this.messagesSent < NodeWrapper.getMaxNumber());
@@ -170,7 +170,8 @@ public class Node implements Serializable {
                     } else if(incomingMessage instanceof MarkerMessage){
                         logger.info("Received marker message");
                         processChandyLamportProtocol((MarkerMessage) incomingMessage);
-                    } else if(incomingMessage instanceof SnapshotMessage snapshotMessage){
+                    } else if(incomingMessage instanceof SnapshotMessage){
+                        SnapshotMessage snapshotMessage = (SnapshotMessage) incomingMessage;
                         logger.info("Received snapshot message");
 
                         // if it is not the node that initiated the protocol, then pass the snapshot to its parent,
