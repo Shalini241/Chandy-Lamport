@@ -9,122 +9,44 @@ import java.util.logging.SimpleFormatter;
 public class Node implements Serializable {
 
     private static final Logger logger = Logger.getLogger(Node.class.getName());
-
     private final String hostName;
-
     private final int port;
-
     private NodeColor color;
-
-    private transient Server server;
-
-    public int getNodeId() {
-        return nodeId;
-    }
-
+    private final transient Server server;
     private final int nodeId;
     private List<Node> neighbors;
     private transient Boolean active;
-
     private transient int messagesSent;
-
     private int[] vectorClock;
-
     private transient LocalState localState;
-
     private transient ArrayList<ChannelState> channelStates;
     private transient GlobalState globalState;
-
     private Node parent;
-
+    public int getNodeId() {
+        return nodeId;
+    }
     private transient HashMap<Integer, Boolean> receivedMarkers;
-
-    public HashMap<Integer, Boolean> getReceivedMarkers() {
-        return receivedMarkers;
-    }
-
-    public void setReceivedMarkers(HashMap<Integer, Boolean> receivedMarkers) {
-        this.receivedMarkers = receivedMarkers;
-    }
-
-    public ArrayList<ChannelState> getChannelStates() {
-        return channelStates;
-    }
-
-    public void setChannelStates(ArrayList<ChannelState> channelStates) {
-        this.channelStates = channelStates;
-    }
-
-    public GlobalState getGlobalState() {
-        return globalState;
-    }
-
-    public void setGlobalState(GlobalState globalState) {
-        this.globalState = globalState;
-    }
-
     public List<Node> getNeighbors() {
         return neighbors;
     }
     public void setNeighbors(ArrayList<Node> neighbours) {
         this.neighbors = neighbours;
     }
-
     public boolean isActive() {
         return active;
-    }
-
-    public int getMessagesSent() {
-        return messagesSent;
-    }
-
-    public void setActive(boolean active) {
-        this.active = active;
-    }
-
-    public void setMessagesSent(int messagesSent) {
-        this.messagesSent = messagesSent;
     }
     public int getPort() {
         return port;
     }
-
-    public LocalState getLocalState() {
-        return localState;
-    }
-
-    public void setLocalState(LocalState localState) {
-        this.localState = localState;
-    }
-
-
     public String getHostName() {
         return hostName;
     }
-
-    public Node getParent() {
-        return parent;
-    }
-
     public void setParent(Node parent) {
         this.parent = parent;
     }
-
     public NodeColor getColor() {
         return color;
     }
-
-    public void setColor(NodeColor color) {
-        this.color = color;
-    }
-    public int[] getVectorClock() {
-        return vectorClock;
-    }
-
-    public void setVectorClock(int[] vectorClock) {
-        this.vectorClock = vectorClock;
-    }
-
 
     public Node(int id, String hostName, int port) throws IOException {
         this.hostName = hostName;
@@ -144,19 +66,17 @@ public class Node implements Serializable {
         SimpleFormatter formatter = new SimpleFormatter();
         fh.setFormatter(formatter);
     }
-
     public void initializeNode() {
-        // Start Listening thread
+        // Start Listening thread to listen from its neighbors
         new Thread(new ListenerThread()).start();
-        // Put the main thread in sleep for few seconds
         try {
             Thread.sleep(20000);
             server.initializeNeighbors(neighbors);
-            //Start Chandy lamport protocol
             if(nodeId == 0){
                 // sleep for 10 seconds before starting the protocol
                 Thread.sleep(10000);
                 sendApplicationMessages();
+                // start the protocol
                 new Thread(new ChandyLamportProtocol(this)).start();
             }
         } catch (InterruptedException e) {
@@ -165,7 +85,6 @@ public class Node implements Serializable {
     }
 
     public void initializeReceivedMarkerMap() {
-        // set or reset logmap to false
         this.receivedMarkers = new HashMap<>();
         for (Node neighbourNode : this.neighbors) {
             this.receivedMarkers.put(neighbourNode.nodeId, false);
@@ -173,22 +92,17 @@ public class Node implements Serializable {
     }
 
     class ListenerThread implements Runnable {
-        //private Socket socket;
         private ServerSocket serverSocket;
-
-        public ListenerThread() {
-
-        }
-
+        public ListenerThread() {}
         @Override
         public void run() {
             try {
-//                System.out.print("Started Listening from " + nodeId);
                 serverSocket = new ServerSocket(getPort());
-                // creating new message procesisng thread for each socket getting openned
                 while (true) {
+                    // keep trying until all the socket connections get accepted,
+                    // accept the connection and start processing messages
                     Socket socket = serverSocket.accept();
-                    new Thread(new MessageProcessingThread(socket)).start();
+                    new Thread(new messageProcessor(socket)).start();
                 }
             } catch (Exception ex) {
                 ex.printStackTrace();
@@ -202,13 +116,12 @@ public class Node implements Serializable {
         }
     }
 
-    class MessageProcessingThread implements Runnable {
+    class messageProcessor implements Runnable {
         ObjectInputStream inputStream;
         Socket socket;
 
-        public MessageProcessingThread(Socket socket) {
+        public messageProcessor(Socket socket) {
             this.socket = socket;
-//            logger.info(socket.toString());
             try {
                 inputStream = new ObjectInputStream(socket.getInputStream());
             } catch (Exception ex) {
@@ -221,12 +134,17 @@ public class Node implements Serializable {
             while (true) {
                 try {
                     Message incomingMessage = (Message) inputStream.readObject();
-                    if(incomingMessage instanceof ApplicationMessage){
-                        ApplicationMessage applicationMessage = (ApplicationMessage) incomingMessage;
+                    // Synchronize the block wherever any parameter is getting updates
+                    // since the block is being accessed by multiple message processing threads
+                    if(incomingMessage instanceof ApplicationMessage applicationMessage){
+
+                        // set the active status as per the logic
                         synchronized (Node.this.active) {
                             Node.this.active = (Node.this.messagesSent < NodeWrapper.getMaxNumber());
                         }
                         logger.info("Received Application message");
+
+                        //update vector clock
                         synchronized (Node.this.vectorClock) {
                             for (int i = 0; i < Node.this.vectorClock.length; i++) {
                                 Node.this.vectorClock[i] = Math.max(Node.this.vectorClock[i],
@@ -234,26 +152,29 @@ public class Node implements Serializable {
                             }
                             Node.this.vectorClock[Node.this.getNodeId()]++;
                         }
+                        // if the process is already red and hasn't received markers from the another node,
+                        // then start recording the channel states
                         if(Node.this.color == NodeColor.RED &&
                                 !Node.this.receivedMarkers.get(incomingMessage.getSourceNode().getNodeId())){
                             synchronized (Node.this.channelStates) {
-                                if (Node.this.channelStates == null)
-                                    Node.this.channelStates = new ArrayList<>();
-
                                 ChannelState newChannelState = new ChannelState(incomingMessage.getSourceNode(),
                                         Node.this, applicationMessage.messageClock);
                                 Node.this.channelStates.add(newChannelState);
                             }
 
                         }
+
+                        // if the node is still active then send application messages
                         if (Node.this.active)
                             sendApplicationMessages();
                     } else if(incomingMessage instanceof MarkerMessage){
                         logger.info("Received marker message");
                         processChandyLamportProtocol((MarkerMessage) incomingMessage);
-                    } else if(incomingMessage instanceof SnapshotMessage){
-                        SnapshotMessage snapshotMessage = (SnapshotMessage) incomingMessage;
+                    } else if(incomingMessage instanceof SnapshotMessage snapshotMessage){
                         logger.info("Received snapshot message");
+
+                        // if it is not the node that initiated the protocol, then pass the snapshot to its parent,
+                        // otherwise update its global states and check if the global state is consistent
                         if (Node.this.getNodeId() != 0) {
                             send(Node.this.parent, snapshotMessage);
                         } else {
@@ -269,8 +190,6 @@ public class Node implements Serializable {
                         logger.info("Received termination message");
                         sendTerminateMessage();
                     }
-                } catch (EOFException ex) {
-
                 } catch (Exception ex) {
                     ex.printStackTrace();
                 }
@@ -280,9 +199,9 @@ public class Node implements Serializable {
     }
 
     private void saveSnapshot() {
-        // if default node has received all local state do the following
-        //  a. add the current global state to NodeRunner.GlobalState
-        //  b. start taking next snapshot or exit based on application status
+        // if default node has received local state from all nodes then do either of the following
+        //  1. if the current node is passive and channel are empty then terminate the protocol
+        //  2. Otherwise, restart the chandy lamport protocol
         if (this.globalState.getLocalStates().size() == NodeWrapper.getTotalNodes()) {
             NodeWrapper.getGlobalStates().add(this.globalState);
             if (!Node.this.isActive() && this.globalState.getChannelStates().isEmpty()) {
@@ -304,19 +223,21 @@ public class Node implements Serializable {
     }
 
     private void sendTerminateMessage() {
-        // send finish message to all neighbours
+        // send terminate message to all neighbours
         for (Node neighbour : this.neighbors) {
             if (neighbour.nodeId != 0) {
                 TerminateMessage finishMessage = new TerminateMessage(this);
                 send(neighbour, finishMessage);
             }
         }
-        // if current node is default node then write the snapshot to a file
+        // if current node is the one that initiated the protocol then check
+        // if snapshot is consistent then write it in a file, else restart the protocol
         if (this.nodeId == 0) {
             if(checkSnapShotConsistency()){
                 logger.info("Protocol is finished");
                 writeFinalOutput();
                 server.haltAllNodes();
+                // Terminate the process
                 System.exit(0);
             } else {
                 restartChandyLamport();
@@ -331,44 +252,45 @@ public class Node implements Serializable {
 
     void processChandyLamportProtocol(MarkerMessage markerMessage){
         synchronized (this) {
+            // if the node color is blue then:
+            // record the local state and pass the marker message to its neighbor
             if(this.getColor() == NodeColor.BLUE){
                 this.color = NodeColor.RED;
                 this.localState.setVectorClock(this.vectorClock);
-                this.localState.setActiveStatus(this.active);
                 this.localState.setNodeId(this.nodeId);
 
                 for (Node neighbour : this.neighbors) {
                     Message marker = new MarkerMessage(this);
                     send(neighbour, marker);
                 }
+                // this condition will only be true for the nodes that didn't initiate the protocol
+                // and will be executed by the last node in the topology.
+                // After this process will start sending snapshots to its parent as response to the marker messages
                 if (markerMessage != null) {
                     receivedMarkers.put(markerMessage.getSourceNode().getNodeId(), true);
-                    // check if this nodes expects marker message from only one node ( if this node has only one neighbour in the topology
+                    // check if the node has received markers from all its neighbor
                     if (isAllMarkerMessageReceived()) {
                         this.color = NodeColor.BLUE;
                         SnapshotMessage snapShotMessage = new SnapshotMessage(this.localState, new ArrayList<>(), this);
                         // send the snapshot to its parent
                         send(this.parent, snapShotMessage);
                         // reset all chandy lamport parameters for another snapshot to be taken if needed
-                        resetOtherNodes();
+                        resetNodes();
                     }
                 }
             } else {
-                // set the logMap of node from where marker message received as true
                 receivedMarkers.put(markerMessage.getSourceNode().getNodeId(), true);
-                // this.logStatus != Color.BLUE is checked to ensure logic works multi threading access at almost same time
                 if (isAllMarkerMessageReceived()) {
                     this.color = NodeColor.BLUE;
-                    // if current node is not default node (node 0), then forward the snapshot to its parent. Else add it to global state of default node.
                     if (this.getNodeId() != 0) {
                         SnapshotMessage snapShotMessage = new SnapshotMessage(this.localState, this.channelStates, this);
                         send(this.parent, snapShotMessage);
-                        resetOtherNodes();
+                        resetNodes();
                     } else {
+                        // if the node that started the protocol received marker from all noes then save the global states
                         this.globalState.getLocalStates().add(localState);
                         for (ChannelState localChannelState : this.channelStates)
                             this.globalState.getChannelStates().add(localChannelState);
-                        // print the output
                         saveSnapshot();
                     }
                 }
@@ -378,19 +300,18 @@ public class Node implements Serializable {
 
     private boolean checkSnapShotConsistency() {
         boolean anyConsistentSnapshotFound = false;
-        for (int snapshotIndex = 0; snapshotIndex < NodeWrapper.getGlobalStates().size(); snapshotIndex++) {
-            GlobalState globalState = NodeWrapper.getGlobalStates().get(snapshotIndex);
+        for (int snapshotNum = 0; snapshotNum < NodeWrapper.getGlobalStates().size(); snapshotNum++) {
+            GlobalState globalState = NodeWrapper.getGlobalStates().get(snapshotNum);
             boolean isSnapshotConsistent = true;
             int ithProcess = 0;
             while (ithProcess < NodeWrapper.getTotalNodes()) {
-                int ithVectorValue = globalState.getLocalStateByNodeId(ithProcess).getVectorClock()[ithProcess];
+                int iVal = globalState.getLocalStateByNodeId(ithProcess).getVectorClock()[ithProcess];
                 for (int i = 0; i < globalState.getLocalStates().size(); i++) {
                     if (i != ithProcess) {
-                        int jthVectorValue = globalState.getLocalStates().get(i).getVectorClock()[ithProcess];
-                        if (jthVectorValue > ithVectorValue) {
+                        int jVal = globalState.getLocalStates().get(i).getVectorClock()[ithProcess];
+                        if (jVal > iVal) {
                             isSnapshotConsistent = false;
-                            logger.info("Global Snapshot number " + (snapshotIndex + 1) + " is not consistent");
-                            logger.info("Process in Node " + ithProcess + " is invalid");
+                            logger.info("Global Snapshot number " + (snapshotNum + 1) + " is not consistent");
                             break;
                         }
                     }
@@ -399,14 +320,12 @@ public class Node implements Serializable {
             }
             if (isSnapshotConsistent) {
                 anyConsistentSnapshotFound = true;
-                logger.info("Global Snapshot number " + (snapshotIndex + 1) + " is consistent");
+                logger.info("Global Snapshot number " + (snapshotNum + 1) + " is consistent");
             }
         }
         return anyConsistentSnapshotFound;
     }
-
     private boolean isAllMarkerMessageReceived() {
-        // Check using logmap if all marker messages are received
         for (Integer nodeId : receivedMarkers.keySet()) {
             if (!receivedMarkers.get(nodeId))
                 return false;
@@ -414,7 +333,7 @@ public class Node implements Serializable {
         return true;
     }
 
-    private void resetOtherNodes() {
+    private void resetNodes() {
         this.localState = new LocalState();
         this.channelStates = new ArrayList<>();
         initializeReceivedMarkerMap();
@@ -428,10 +347,8 @@ public class Node implements Serializable {
     }
     private void sendApplicationMessages() {
         Message sendMessage;
-        StringBuilder message;
         int messagePerActive;
         try {
-            // get random message count each time node becomes active
             messagePerActive = getRandomMessageCount();
             for (int i = 0; i < messagePerActive; i++) {
                 if (this.active && (messagesSent < NodeWrapper.getMaxNumber ())) {
@@ -443,8 +360,6 @@ public class Node implements Serializable {
                     break;
                 Thread.sleep(NodeWrapper.getMinSendDelay());
             }
-//            logger.info(this);
-            // set node as passive after it sends all messages
             synchronized (this.active) {
                 active = false;
             }
@@ -455,8 +370,6 @@ public class Node implements Serializable {
     }
 
     public void send(Node destinationNode, Message sendMessage) {
-        // since both chandy lamport protocol thread and message processing thread uses this resource,
-        // it must be synchronized
         synchronized (server) {
             if (sendMessage instanceof ApplicationMessage){
                 logger.info("Sending Application message from " + this.nodeId + " to "
@@ -477,7 +390,6 @@ public class Node implements Serializable {
             server.send(destinationNode, sendMessage);
         }
     }
-
 }
 enum NodeColor{
     RED, BLUE;

@@ -9,27 +9,22 @@ public class NodeWrapper {
     private static int minPerActive;
     private static int maxPerActive;
     private static int minSendDelay;
-
     private static int snapshotDelay;
     private static int maxNumber;
-
     private static HashMap<Integer, Node> nodeMap;
-
     private static ArrayList<GlobalState> globalStates;
-
+    private static String configName;
     public static ArrayList<GlobalState> getGlobalStates() {
         if(globalStates==null){
             globalStates = new ArrayList<>();
         }
         return globalStates;
     }
-
-    public static void setGlobalStates(ArrayList<GlobalState> globalStates) {
-        NodeWrapper.globalStates = globalStates;
-    }
-
     public static int getMinPerActive() {
         return minPerActive;
+    }
+    public static String getConfigName() {
+        return configName;
     }
 
     public static int getMaxPerActive() {
@@ -51,11 +46,6 @@ public class NodeWrapper {
     public static int getTotalNodes() {
         return totalNodes;
     }
-
-    public static void setTotalNodes(int totalNodes) {
-        NodeWrapper.totalNodes = totalNodes;
-    }
-
 
     private static List<List<Integer>> parseConfigFile(String configFilePath) {
 
@@ -106,32 +96,27 @@ public class NodeWrapper {
                 Node parent = nodeMap.get(nodeId);
                 List<Integer> neighbours = neighbourList.get(nodeId);
                 if (neighbours != null && !neighbours.isEmpty()) {
-                    for (Integer neighbourId : neighbours) {
-                        if (!visited[neighbourId]) {
-                            Node neighbour = nodeMap.get(neighbourId);
+                    for (int id : neighbours) {
+                        if (!visited[id]) {
+                            Node neighbour = nodeMap.get(id);
                             neighbour.setParent(parent);
-                            visited[neighbourId] = true;
-                            queue.add(neighbourId);
+                            visited[id] = true;
+                            queue.add(id);
                         }
                     }
                 }
             }
-
         }
     }
 
     public static void main(String[] args) {
-        int id = Integer.parseInt(args[0]);
-        List<List<Integer>> neighborList = parseConfigFile("configuration.text");
+        configName = "configuration";
+        List<List<Integer>> neighborList = parseConfigFile(configName+".text");
         buildSpanningTree(neighborList);
-
         int currentNodeId = Integer.parseInt(args[0]);
         Node currentNode = nodeMap.get(currentNodeId);
-
-        // Load its neighbours
         ArrayList<Node> neighbourNodes = new ArrayList<>();
         List<Integer> neighbours = neighborList.get(currentNodeId);
-
         for (Integer i : neighbours) {
             Node neighbour = nodeMap.get(i);
             neighbourNodes.add(neighbour);

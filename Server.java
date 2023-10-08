@@ -6,11 +6,11 @@ import java.util.List;
 public class Server{
 
     private HashMap<Integer, Socket> socketMap;
-    private HashMap<Integer, ObjectOutputStream> outputMap;
+    private HashMap<Integer, ObjectOutputStream> outputStreamMap;
 
     public Server() {
         socketMap = new HashMap<>();
-        outputMap = new HashMap<>();
+        outputStreamMap = new HashMap<>();
     }
 
     void initializeNeighbors(List<Node> neighbourNodes) {
@@ -21,7 +21,7 @@ public class Server{
                     for (Node neighbour : neighbourNodes) {
                         Socket clientSocket = new Socket(neighbour.getHostName(), neighbour.getPort());
                         socketMap.put(neighbour.getNodeId(), clientSocket);
-                        outputMap.put(neighbour.getNodeId(), new ObjectOutputStream(clientSocket.getOutputStream()));
+                        outputStreamMap.put(neighbour.getNodeId(), new ObjectOutputStream(clientSocket.getOutputStream()));
                     }
                     connectionEstablished = true;
                 } catch (Exception ex) {
@@ -34,10 +34,10 @@ public class Server{
 
     public void send(Node destinationNode, Message sendMessage) {
         try {
-            if (outputMap.size() == 0) {
+            if (outputStreamMap.size() == 0) {
                 initializeNeighbors(sendMessage.getSourceNode().getNeighbors());
             }
-            ObjectOutputStream output = outputMap.get(destinationNode.getNodeId());
+            ObjectOutputStream output = outputStreamMap.get(destinationNode.getNodeId());
             output.writeObject(sendMessage);
             output.flush();
         } catch (Exception ex) {
@@ -47,8 +47,8 @@ public class Server{
 
     public void haltAllNodes() {
         try {
-            for (Integer nodeId : outputMap.keySet()) {
-                outputMap.get(nodeId).close();
+            for (Integer nodeId : outputStreamMap.keySet()) {
+                outputStreamMap.get(nodeId).close();
             }
             for (Integer nodeId : socketMap.keySet()) {
                 socketMap.get(nodeId).close();

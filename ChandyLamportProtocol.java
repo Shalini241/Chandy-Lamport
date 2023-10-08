@@ -16,6 +16,7 @@ public class ChandyLamportProtocol implements Runnable{
     }
 
     public void startProtocol(){
+        // null will denote that the current node started the protocol
         node.processChandyLamportProtocol(null);
     }
 }

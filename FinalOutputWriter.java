@@ -16,7 +16,7 @@ public class FinalOutputWriter {
             try {
                 for (GlobalState globalState : this.globalStates) {
                     for (LocalState localState : globalState.getLocalStates()) {
-                        String fileName =  "LocalState-" + localState.getNodeId() + ".out";
+                        String fileName =  NodeWrapper.getConfigName()+"-" + localState.getNodeId() + ".out";
                         File file = new File(fileName);
                         FileWriter fileWriter;
                         boolean fileExists = false;
@@ -30,10 +30,9 @@ public class FinalOutputWriter {
                         if (fileExists)
                             bufferedWriter.write("\n");
 
-                        for (Integer vectorValue : localState.getVectorClock())
-                            bufferedWriter.write(vectorValue + " ");
+                        for (int clockVal : localState.getVectorClock())
+                            bufferedWriter.write(clockVal + " ");
 
-                        // Always close files.
                         bufferedWriter.flush();
                         bufferedWriter.close();
                         fileWriter.close();

@@ -4,10 +4,10 @@
 netid=sxg220033
 
 # Root directory of your project
-PROJDIR=/home/013/s/sx/sxg220033/Assignment1/OS-Asg1
+PROJDIR=/home/013/s/sx/sxg220033/OS-Asg1
 
 # Directory where the config file is located on your local system
-CONFIGLOCAL=/home/013/s/sx/sxg220033/Assignment1/OS-Asg1/configuration.text
+CONFIGLOCAL=/home/013/s/sx/sxg220033/OS-Asg1/configuration.text
 
 # Directory your java classes are in
 BINDIR=$PROJDIR
@@ -29,7 +29,7 @@ do
     echo "ssh onto dc$n"
       # execute a remote command on the dc machine. Starts the jar and redirects the output to a log file.
     ssh $netid@$host \
-      "cd ~/Assignment1/OS-Asg1; \
+      "cd ~/OS-Asg1; \
       java $PROG $n" &
 
     n=$((n + 1))
