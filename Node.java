@@ -191,6 +191,8 @@ public class Node implements Serializable {
                         logger.info("Received termination message");
                         sendTerminateMessage();
                     }
+                } catch (EOFException ex) {
+
                 } catch (Exception ex) {
                     ex.printStackTrace();
                 }
