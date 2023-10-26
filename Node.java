@@ -267,13 +267,11 @@ public class Node implements Serializable {
             // if the node color is blue then:
             // record the local state and pass the marker message to its neighbor
             if(this.getColor() == NodeColor.BLUE){
+
                 this.color = NodeColor.RED;
                 this.localState.setVectorClock(this.vectorClock);
                 this.localState.setNodeId(this.nodeId);
                 this.localState.setActiveStatus(this.active);
-
-                sendApplicationMessagesToParent();
-                sendApplicationMessages();
 
                 for (Node neighbour : this.neighbors) {
                     Message marker = new MarkerMessage(this);
@@ -289,6 +287,8 @@ public class Node implements Serializable {
                         this.color = NodeColor.BLUE;
                         SnapshotMessage snapShotMessage = new SnapshotMessage(this.localState, new ArrayList<>(), this);
                         // send the snapshot to its parent
+                        sendApplicationMessages();
+                        sendApplicationMessagesToParent();
                         send(this.parent, snapShotMessage);
                         // reset all chandy lamport parameters for another snapshot to be taken if needed
                         resetNodes();
@@ -296,10 +296,12 @@ public class Node implements Serializable {
                 }
             } else {
                 receivedMarkers.put(markerMessage.getSourceNode().getNodeId(), true);
-                if (isAllMarkerMessageReceived()) {
+                if (isAllMarkerMessageReceived() && this.color != NodeColor.BLUE) {
                     this.color = NodeColor.BLUE;
                     if (this.getNodeId() != 0) {
                         SnapshotMessage snapShotMessage = new SnapshotMessage(this.localState, this.channelStates, this);
+                        sendApplicationMessages();
+                        sendApplicationMessagesToParent();
                         send(this.parent, snapShotMessage);
                         resetNodes();
                     } else {
@@ -367,13 +369,15 @@ public class Node implements Serializable {
         try {
             messagePerActive = getRandomMessageCount();
             for (int i = 0; i < messagePerActive; i++) {
-                if (this.active && (messagesSent < NodeWrapper.getMaxNumber ())) {
-                    this.vectorClock[this.getNodeId()]++;
-                    sendMessage = new ApplicationMessage(this.vectorClock, this);
-                    send(neighbors.get(new Random().nextInt(neighbors.size())), sendMessage);
-                    messagesSent++;
-                } else
-                    break;
+                synchronized (this.vectorClock){
+                    if (this.active && (messagesSent < NodeWrapper.getMaxNumber ())) {
+                        this.vectorClock[this.getNodeId()]++;
+                        sendMessage = new ApplicationMessage(this.vectorClock, this);
+                        send(neighbors.get(new Random().nextInt(neighbors.size())), sendMessage);
+                        messagesSent++;
+                    } else
+                        break;
+                }
                 Thread.sleep(NodeWrapper.getMinSendDelay());
             }
             synchronized (this.active) {
