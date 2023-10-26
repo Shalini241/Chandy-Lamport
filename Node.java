@@ -169,6 +169,8 @@ public class Node implements Serializable {
                             sendApplicationMessages();
                     } else if(incomingMessage instanceof MarkerMessage){
                         logger.info("Received marker message");
+                        sendApplicationMessagesToParent();
+                        sendApplicationMessages();
                         processChandyLamportProtocol((MarkerMessage) incomingMessage);
                     } else if(incomingMessage instanceof SnapshotMessage){
                         SnapshotMessage snapshotMessage = (SnapshotMessage) incomingMessage;
