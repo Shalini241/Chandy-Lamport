@@ -4,6 +4,16 @@ public class LocalState implements Serializable {
     private int[] vectorClock;
     private int nodeId;
 
+    public boolean isActiveStatus() {
+        return activeStatus;
+    }
+
+    public void setActiveStatus(boolean activeStatus) {
+        this.activeStatus = activeStatus;
+    }
+
+    private boolean activeStatus;
+
     LocalState() {
         vectorClock = new int[NodeWrapper.getTotalNodes()];
     }

@@ -207,12 +207,21 @@ public class Node implements Serializable {
         //  2. Otherwise, restart the chandy lamport protocol
         if (this.globalState.getLocalStates().size() == NodeWrapper.getTotalNodes()) {
             NodeWrapper.getGlobalStates().add(this.globalState);
-            if (!Node.this.isActive() && this.globalState.getChannelStates().isEmpty()) {
+            if (isApplicationPassive() && this.globalState.getChannelStates().isEmpty()) {
                 sendTerminateMessage();
             } else {
                 restartChandyLamport();
             }
         }
+    }
+
+    private boolean isApplicationPassive() {
+        // is all nodes passive
+        for (LocalState nodeLocalState : this.globalState.getLocalStates()) {
+            if (nodeLocalState.isActiveStatus())
+                return false;
+        }
+        return true;
     }
 
     private void restartChandyLamport() {
@@ -261,6 +270,7 @@ public class Node implements Serializable {
                 this.color = NodeColor.RED;
                 this.localState.setVectorClock(this.vectorClock);
                 this.localState.setNodeId(this.nodeId);
+                this.localState.setActiveStatus(this.active);
 
                 for (Node neighbour : this.neighbors) {
                     Message marker = new MarkerMessage(this);
