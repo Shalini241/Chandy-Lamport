@@ -7,10 +7,10 @@
 netid=sxg220033
 
 # Root directory of project [CHANGE THIS]
-PROJDIR=/home/013/s/sx/sxg220033/OS-Asg1
+PROJDIR=/home/013/s/sx/sxg220033/test/OS-Asg1
 
 # Directory where the config file is located on your local system [CHANGE THIS]
-CONFIGLOCAL=/home/013/s/sx/sxg220033/OS-Asg1/configuration.text
+CONFIGLOCAL=/home/013/s/sx/sxg220033/test/OS-Asg1/configuration.text
 
 # extension for hosts [CHANGE THIS if using a different host system (setting to "" should suffice)]
 hostExtension="utdallas.edu"
