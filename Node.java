@@ -169,8 +169,6 @@ public class Node implements Serializable {
                             sendApplicationMessages();
                     } else if(incomingMessage instanceof MarkerMessage){
                         logger.info("Received marker message");
-                        sendApplicationMessagesToParent();
-                        sendApplicationMessages();
                         processChandyLamportProtocol((MarkerMessage) incomingMessage);
                     } else if(incomingMessage instanceof SnapshotMessage){
                         SnapshotMessage snapshotMessage = (SnapshotMessage) incomingMessage;
@@ -274,6 +272,9 @@ public class Node implements Serializable {
                 this.localState.setNodeId(this.nodeId);
                 this.localState.setActiveStatus(this.active);
 
+                sendApplicationMessagesToParent();
+                sendApplicationMessages();
+
                 for (Node neighbour : this.neighbors) {
                     Message marker = new MarkerMessage(this);
                     send(neighbour, marker);
@@ -288,8 +289,6 @@ public class Node implements Serializable {
                         this.color = NodeColor.BLUE;
                         SnapshotMessage snapShotMessage = new SnapshotMessage(this.localState, new ArrayList<>(), this);
                         // send the snapshot to its parent
-                        sendApplicationMessagesToParent();
-                        sendApplicationMessages();
                         send(this.parent, snapShotMessage);
                         // reset all chandy lamport parameters for another snapshot to be taken if needed
                         resetNodes();
@@ -301,8 +300,6 @@ public class Node implements Serializable {
                     this.color = NodeColor.BLUE;
                     if (this.getNodeId() != 0) {
                         SnapshotMessage snapShotMessage = new SnapshotMessage(this.localState, this.channelStates, this);
-                        sendApplicationMessagesToParent();
-                        sendApplicationMessages();
                         send(this.parent, snapShotMessage);
                         resetNodes();
                     } else {
