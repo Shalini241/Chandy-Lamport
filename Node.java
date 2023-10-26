@@ -245,14 +245,11 @@ public class Node implements Serializable {
         // if current node is the one that initiated the protocol then check
         // if snapshot is consistent then write it in a file, else restart the protocol
         if (this.nodeId == 0) {
+            writeFinalOutput();
             if(checkSnapShotConsistency()){
                 logger.info("Protocol is finished");
-                writeFinalOutput();
-                server.haltAllNodes();
-                // Terminate the process
-                System.exit(0);
-            } else {
-                restartChandyLamport();
+            } else{
+                logger.info("Snapshot is not consistent");
             }
         }
     }
