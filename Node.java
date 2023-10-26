@@ -287,6 +287,7 @@ public class Node implements Serializable {
                         SnapshotMessage snapShotMessage = new SnapshotMessage(this.localState, new ArrayList<>(), this);
                         // send the snapshot to its parent
                         sendApplicationMessagesToParent();
+                        sendApplicationMessages();
                         send(this.parent, snapShotMessage);
                         // reset all chandy lamport parameters for another snapshot to be taken if needed
                         resetNodes();
@@ -299,6 +300,7 @@ public class Node implements Serializable {
                     if (this.getNodeId() != 0) {
                         SnapshotMessage snapShotMessage = new SnapshotMessage(this.localState, this.channelStates, this);
                         sendApplicationMessagesToParent();
+                        sendApplicationMessages();
                         send(this.parent, snapShotMessage);
                         resetNodes();
                     } else {

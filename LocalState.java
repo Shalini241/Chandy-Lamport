@@ -16,6 +16,7 @@ public class LocalState implements Serializable {
 
     LocalState() {
         vectorClock = new int[NodeWrapper.getTotalNodes()];
+        activeStatus = false;
     }
 
     public int[] getVectorClock() {
