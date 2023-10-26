@@ -177,6 +177,7 @@ public class Node implements Serializable {
                         // if it is not the node that initiated the protocol, then pass the snapshot to its parent,
                         // otherwise update its global states and check if the global state is consistent
                         if (Node.this.getNodeId() != 0) {
+                            sendApplicationMessages();
                             send(Node.this.parent, snapshotMessage);
                         } else {
                             synchronized (Node.this.globalState) {
@@ -274,7 +275,6 @@ public class Node implements Serializable {
                     if (isAllMarkerMessageReceived()) {
                         this.color = NodeColor.BLUE;
                         SnapshotMessage snapShotMessage = new SnapshotMessage(this.localState, new ArrayList<>(), this);
-                        sendApplicationMessageToParent();
                         // send the snapshot to its parent
                         send(this.parent, snapShotMessage);
                         // reset all chandy lamport parameters for another snapshot to be taken if needed
@@ -287,7 +287,6 @@ public class Node implements Serializable {
                     this.color = NodeColor.BLUE;
                     if (this.getNodeId() != 0) {
                         SnapshotMessage snapShotMessage = new SnapshotMessage(this.localState, this.channelStates, this);
-                        sendApplicationMessageToParent();
                         send(this.parent, snapShotMessage);
                         resetNodes();
                     } else {
