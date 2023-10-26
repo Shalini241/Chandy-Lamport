@@ -275,6 +275,7 @@ public class Node implements Serializable {
                     if (isAllMarkerMessageReceived()) {
                         this.color = NodeColor.BLUE;
                         SnapshotMessage snapShotMessage = new SnapshotMessage(this.localState, new ArrayList<>(), this);
+                        sendApplicationMessageToParent();
                         // send the snapshot to its parent
                         send(this.parent, snapShotMessage);
                         // reset all chandy lamport parameters for another snapshot to be taken if needed
@@ -287,6 +288,7 @@ public class Node implements Serializable {
                     this.color = NodeColor.BLUE;
                     if (this.getNodeId() != 0) {
                         SnapshotMessage snapShotMessage = new SnapshotMessage(this.localState, this.channelStates, this);
+                        sendApplicationMessageToParent();
                         send(this.parent, snapShotMessage);
                         resetNodes();
                     } else {
@@ -347,6 +349,29 @@ public class Node implements Serializable {
         int difference = NodeWrapper.getMaxPerActive() - NodeWrapper.getMinPerActive() + 1;
         int randomNumber = randomGenerator.nextInt(difference);
         return NodeWrapper.getMinPerActive() + randomNumber;
+    }
+
+    private void sendApplicationMessageToParent(){
+        Message sendMessage;
+        int messagePerActive;
+        try {
+            messagePerActive = getRandomMessageCount();
+            for (int i = 0; i < messagePerActive; i++) {
+                if (this.active && (messagesSent < NodeWrapper.getMaxNumber ())) {
+                    this.vectorClock[this.getNodeId()]++;
+                    sendMessage = new ApplicationMessage(this.vectorClock, this);
+                    send(parent, sendMessage);
+                    messagesSent++;
+                } else
+                    break;
+                Thread.sleep(NodeWrapper.getMinSendDelay());
+            }
+            synchronized (this.active) {
+                active = false;
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
     }
     private void sendApplicationMessages() {
         Message sendMessage;
