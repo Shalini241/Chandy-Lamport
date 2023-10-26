@@ -282,10 +282,14 @@ public class Node implements Serializable {
                     // check if the node has received markers from all its neighbor
                     if (isAllMarkerMessageReceived()) {
                         this.color = NodeColor.BLUE;
+                        sendApplicationMessages();
+                        sendApplicationMessagesToParent();
+
                         SnapshotMessage snapShotMessage = new SnapshotMessage(this.localState, new ArrayList<>(), this);
                         // send the snapshot to its parent
                         sendApplicationMessages();
                         sendApplicationMessagesToParent();
+
                         send(this.parent, snapShotMessage);
                         // reset all chandy lamport parameters for another snapshot to be taken if needed
                         resetNodes();
@@ -296,6 +300,8 @@ public class Node implements Serializable {
                 if (isAllMarkerMessageReceived() && this.color != NodeColor.BLUE) {
                     this.color = NodeColor.BLUE;
                     if (this.getNodeId() != 0) {
+                        sendApplicationMessages();
+                        sendApplicationMessagesToParent();
                         SnapshotMessage snapShotMessage = new SnapshotMessage(this.localState, this.channelStates, this);
                         sendApplicationMessages();
                         sendApplicationMessagesToParent();
