@@ -263,12 +263,15 @@ public class Node implements Serializable {
         synchronized (this) {
             // if the node color is blue then:
             // record the local state and pass the marker message to its neighbor
+            LocalState recordedState = null;
             if(this.getColor() == NodeColor.BLUE){
 
                 this.color = NodeColor.RED;
                 this.localState.setVectorClock(this.vectorClock);
                 this.localState.setNodeId(this.nodeId);
                 this.localState.setActiveStatus(this.active);
+
+                recordedState = cloneLocalState();
 
                 sendApplicationMessagesToParent();
                 sendApplicationMessages();
@@ -282,7 +285,7 @@ public class Node implements Serializable {
                     if (isAllMarkerMessageReceived()) {
                         this.color = NodeColor.BLUE;
 
-                        SnapshotMessage snapShotMessage = new SnapshotMessage(this.localState, new ArrayList<>(), this);
+                        SnapshotMessage snapShotMessage = new SnapshotMessage(recordedState, new ArrayList<>(), this);
                         // send the snapshot to its parent
 
                         send(this.parent, snapShotMessage);
@@ -290,27 +293,33 @@ public class Node implements Serializable {
                         resetNodes();
                     }
                 }
+
+                for (Node neighbour : this.neighbors) {
+                    Message marker = new MarkerMessage(this);
+                    send(neighbour, marker);
+                }
             } else {
                 receivedMarkers.put(markerMessage.getSourceNode().getNodeId(), true);
+                recordedState = cloneLocalState();
+
+                sendApplicationMessagesToParent();
+                sendApplicationMessages();
+                
                 if (isAllMarkerMessageReceived() && this.color != NodeColor.BLUE) {
                     this.color = NodeColor.BLUE;
                     if (this.getNodeId() != 0) {
-                        SnapshotMessage snapShotMessage = new SnapshotMessage(this.localState, this.channelStates, this);
+
+                        SnapshotMessage snapShotMessage = new SnapshotMessage(recordedState, this.channelStates, this);
                         send(this.parent, snapShotMessage);
                         resetNodes();
                     } else {
                         // if the node that started the protocol received marker from all noes then save the global states
-                        this.globalState.getLocalStates().add(localState);
+                        this.globalState.getLocalStates().add(recordedState);
                         for (ChannelState localChannelState : this.channelStates)
                             this.globalState.getChannelStates().add(localChannelState);
                         saveSnapshot();
                     }
                 }
-            }
-
-            for (Node neighbour : this.neighbors) {
-                Message marker = new MarkerMessage(this);
-                send(neighbour, marker);
             }
         }
     }
@@ -432,6 +441,14 @@ public class Node implements Serializable {
             }
             server.send(destinationNode, sendMessage);
         }
+    }
+
+    private LocalState cloneLocalState(){
+        LocalState state = new LocalState();
+        state.setActiveStatus(this.isActive());
+        state.setNodeId(this.nodeId);
+        state.setVectorClock(this.vectorClock);
+        return state;
     }
 }
 enum NodeColor{
