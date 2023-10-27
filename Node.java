@@ -64,6 +64,7 @@ public class Node implements Serializable {
         receivedMarkers = new HashMap<>();
         FileHandler fh = new FileHandler("myapp.log");
         logger.addHandler(fh);
+        isRecorded = false;
 
         SimpleFormatter formatter = new SimpleFormatter();
         fh.setFormatter(formatter);
