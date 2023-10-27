@@ -10,6 +10,8 @@ public class Node implements Serializable {
 
     private static final Logger logger = Logger.getLogger(Node.class.getName());
     private final String hostName;
+
+    private transient Boolean isRecorded;
     private final int port;
     private NodeColor color;
     private final transient Server server;
@@ -55,6 +57,7 @@ public class Node implements Serializable {
         this.active = true;
         this.color = NodeColor.BLUE;
         vectorClock = new int[NodeWrapper.getTotalNodes()];
+        this.localState = new LocalState();
         server = new Server();
         channelStates = new ArrayList<>();
         globalState = new GlobalState();
@@ -229,6 +232,7 @@ public class Node implements Serializable {
         localState = new LocalState();
         channelStates = new ArrayList<>();
         globalState = new GlobalState();
+        isRecorded = false;
         initializeReceivedMarkerMap();
         new Thread(new ChandyLamportProtocol(this)).start();
     }
@@ -262,11 +266,10 @@ public class Node implements Serializable {
         synchronized (this) {
             // if the node color is blue then:
             // record the local state and pass the marker message to its neighbor
-            LocalState recordedState = null;
             if(this.getColor() == NodeColor.BLUE){
 
-                if(localState ==null){
-                    localState = new LocalState();
+                if(!isRecorded){
+                    this.isRecorded = true;
                     this.color = NodeColor.RED;
                     this.localState.setVectorClock(this.vectorClock);
                     this.localState.setNodeId(this.nodeId);
@@ -359,6 +362,7 @@ public class Node implements Serializable {
     private void resetNodes() {
         this.localState = new LocalState();
         this.channelStates = new ArrayList<>();
+        isRecorded = false;
         initializeReceivedMarkerMap();
     }
 
