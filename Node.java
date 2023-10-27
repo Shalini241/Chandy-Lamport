@@ -56,7 +56,6 @@ public class Node implements Serializable {
         this.color = NodeColor.BLUE;
         vectorClock = new int[NodeWrapper.getTotalNodes()];
         server = new Server();
-        localState = new LocalState();
         channelStates = new ArrayList<>();
         globalState = new GlobalState();
         receivedMarkers = new HashMap<>();
@@ -266,12 +265,13 @@ public class Node implements Serializable {
             LocalState recordedState = null;
             if(this.getColor() == NodeColor.BLUE){
 
-                this.color = NodeColor.RED;
-                this.localState.setVectorClock(this.vectorClock);
-                this.localState.setNodeId(this.nodeId);
-                this.localState.setActiveStatus(this.active);
-
-                recordedState = cloneLocalState();
+                if(localState ==null){
+                    localState = new LocalState();
+                    this.color = NodeColor.RED;
+                    this.localState.setVectorClock(this.vectorClock);
+                    this.localState.setNodeId(this.nodeId);
+                    this.localState.setActiveStatus(this.active);
+                }
 
                 sendApplicationMessages();
 
@@ -284,7 +284,7 @@ public class Node implements Serializable {
                     if (isAllMarkerMessageReceived()) {
                         this.color = NodeColor.BLUE;
 
-                        SnapshotMessage snapShotMessage = new SnapshotMessage(recordedState, new ArrayList<>(), this);
+                        SnapshotMessage snapShotMessage = new SnapshotMessage(this.localState, new ArrayList<>(), this);
                         // send the snapshot to its parent
 
                         send(this.parent, snapShotMessage);
@@ -299,7 +299,6 @@ public class Node implements Serializable {
                 }
             } else {
                 receivedMarkers.put(markerMessage.getSourceNode().getNodeId(), true);
-                recordedState = cloneLocalState();
                 sendApplicationMessages();
                 
                 if (isAllMarkerMessageReceived() && this.color != NodeColor.BLUE) {
@@ -307,12 +306,12 @@ public class Node implements Serializable {
                     this.color = NodeColor.BLUE;
                     if (this.getNodeId() != 0) {
 
-                        SnapshotMessage snapShotMessage = new SnapshotMessage(recordedState, this.channelStates, this);
+                        SnapshotMessage snapShotMessage = new SnapshotMessage(this.localState, this.channelStates, this);
                         send(this.parent, snapShotMessage);
                         resetNodes();
                     } else {
                         // if the node that started the protocol received marker from all noes then save the global states
-                        this.globalState.getLocalStates().add(recordedState);
+                        this.globalState.getLocalStates().add(this.localState);
                         for (ChannelState localChannelState : this.channelStates)
                             this.globalState.getChannelStates().add(localChannelState);
                         saveSnapshot();
