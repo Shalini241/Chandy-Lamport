@@ -273,7 +273,6 @@ public class Node implements Serializable {
 
                 recordedState = cloneLocalState();
 
-                sendApplicationMessagesToParent();
                 sendApplicationMessages();
 
                 // this condition will only be true for the nodes that didn't initiate the protocol
@@ -301,11 +300,10 @@ public class Node implements Serializable {
             } else {
                 receivedMarkers.put(markerMessage.getSourceNode().getNodeId(), true);
                 recordedState = cloneLocalState();
-
-                sendApplicationMessagesToParent();
                 sendApplicationMessages();
                 
                 if (isAllMarkerMessageReceived() && this.color != NodeColor.BLUE) {
+
                     this.color = NodeColor.BLUE;
                     if (this.getNodeId() != 0) {
 
