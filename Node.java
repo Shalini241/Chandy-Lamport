@@ -270,10 +270,9 @@ public class Node implements Serializable {
                 this.localState.setNodeId(this.nodeId);
                 this.localState.setActiveStatus(this.active);
 
-                for (Node neighbour : this.neighbors) {
-                    Message marker = new MarkerMessage(this);
-                    send(neighbour, marker);
-                }
+                sendApplicationMessagesToParent();
+                sendApplicationMessages();
+
                 // this condition will only be true for the nodes that didn't initiate the protocol
                 // and will be executed by the last node in the topology.
                 // After this process will start sending snapshots to its parent as response to the marker messages
@@ -282,13 +281,9 @@ public class Node implements Serializable {
                     // check if the node has received markers from all its neighbor
                     if (isAllMarkerMessageReceived()) {
                         this.color = NodeColor.BLUE;
-                        sendApplicationMessages();
-                        sendApplicationMessagesToParent();
 
                         SnapshotMessage snapShotMessage = new SnapshotMessage(this.localState, new ArrayList<>(), this);
                         // send the snapshot to its parent
-                        sendApplicationMessages();
-                        sendApplicationMessagesToParent();
 
                         send(this.parent, snapShotMessage);
                         // reset all chandy lamport parameters for another snapshot to be taken if needed
@@ -300,11 +295,7 @@ public class Node implements Serializable {
                 if (isAllMarkerMessageReceived() && this.color != NodeColor.BLUE) {
                     this.color = NodeColor.BLUE;
                     if (this.getNodeId() != 0) {
-                        sendApplicationMessages();
-                        sendApplicationMessagesToParent();
                         SnapshotMessage snapShotMessage = new SnapshotMessage(this.localState, this.channelStates, this);
-                        sendApplicationMessages();
-                        sendApplicationMessagesToParent();
                         send(this.parent, snapShotMessage);
                         resetNodes();
                     } else {
@@ -315,6 +306,11 @@ public class Node implements Serializable {
                         saveSnapshot();
                     }
                 }
+            }
+
+            for (Node neighbour : this.neighbors) {
+                Message marker = new MarkerMessage(this);
+                send(neighbour, marker);
             }
         }
     }
